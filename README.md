@@ -1,2 +1,4 @@
 # Kewl DB
-![Kewl](assets/that's-kewl.gif)
+<p align="center">
+  <img src="assets/that's-kewl.gif" alt="Kewl">
+</p>
