@@ -113,6 +113,9 @@ func (t *BTree) splitChild(parent *node, i int) {
 	parent.children[i+1] = right
 }
 
+
+// print tree (maybe delete later???)
+// ty claude <3
 func (t *BTree) Print() string {
 	if t.root == nil {
 		return "(empty tree)"
