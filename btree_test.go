@@ -15,8 +15,10 @@ func TestInsert(t *testing.T) {
 	tree.Insert("e", "5")
 	tree.Insert("f", "6")
 	tree.Insert("g", "7")
-	tree.Insert("h","-100")
+	tree.Insert("h", "-100")
 	tree.Insert("z", "-52")
 
+	item, _ := tree.GetItemByKey("g")
 	fmt.Println(tree.Print())
+	fmt.Println(item)
 }

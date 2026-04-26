@@ -81,6 +81,31 @@ func (t *BTree) insertNonFull(n *node, item Item) {
 	t.insertNonFull(n.children[i], item)
 }
 
+// will return Item, bool. Bool will be false if key not found
+func (t *BTree) GetItemByKey(key string) (Item, bool) {
+	n := t.root
+	for n != nil {
+		i := 0
+		for i < len(n.items) && key > n.items[i].Key {
+			i++
+		}
+		// key found
+		if i < len(n.items) && key == n.items[i].Key {
+			return n.items[i], true
+		}
+
+		// leaf node
+		if len(n.children) == 0 {
+			return Item{}, false
+		}
+
+		// check next child
+		n = n.children[i]
+	}
+
+	return Item{}, false
+}
+
 // node full needs to be split to avoid walking back upwards, turning one full node into two half full nodes.
 func (t *BTree) splitChild(parent *node, i int) {
 	full := parent.children[i]
@@ -112,7 +137,6 @@ func (t *BTree) splitChild(parent *node, i int) {
 	copy(parent.children[i+2:], parent.children[i+1:])
 	parent.children[i+1] = right
 }
-
 
 // print tree (maybe delete later???)
 // ty claude <3
