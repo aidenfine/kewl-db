@@ -9,6 +9,12 @@ import (
 )
 
 func main() {
+
+	// manual testing
+	b, err := NewBTree(2, "test.db")
+	b.Insert("hello", "123")
+	fmt.Println(b.GetItemByKey("hello"))
+
 	listener, err := net.Listen("tcp", ":4000")
 	if err != nil {
 		log.Fatal(err)

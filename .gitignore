@@ -2,3 +2,4 @@ kewl-db
 .env
 .local
 ./build
+*.db
