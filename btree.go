@@ -9,43 +9,79 @@ type Item struct {
 	Key   string
 	Value string
 }
+
 type node struct {
-	items    []Item // key, values (sorted)
-	children []*node
+	items    []Item
+	children []uint32
+	pageID   uint32
 }
 
 type BTree struct {
 	root   *node
-	degree int // each node holds at least 2t - 1 items
+	pager  *Pager
+	degree int
 }
 
-// NewTree (create tree)
-func NewBTree(degree int) *BTree {
+func NewBTree(degree int, filename string) (*BTree, error) {
 	if degree <= 1 {
-		panic("degree must must be > 1")
+		panic("degree must be > 1")
 	}
-	return &BTree{degree: degree}
+
+	pager, err := NewPager(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	t := &BTree{degree: degree, pager: pager}
+
+	if pager.nextPage > 0 {
+		t.root = t.getNode(0)
+	}
+
+	return t, nil
+}
+
+func (t *BTree) Close() error {
+	return t.pager.Close()
 }
 
 func (t *BTree) maxItems() int {
 	return t.degree*2 - 1
 }
 
+func (t *BTree) getNode(pageID uint32) *node {
+	data, err := t.pager.ReadPage(pageID)
+	if err != nil {
+		panic(err)
+	}
+	return deserializeNode(data, pageID)
+}
+
+func (t *BTree) writeNode(n *node) {
+	data := serializeNode(n)
+	err := t.pager.WritePage(n.pageID, data)
+	if err != nil {
+		panic(err)
+	}
+}
+
 func (t *BTree) Insert(key, value string) {
 	item := Item{Key: key, Value: value}
 
-	// create root if empty
 	if t.root == nil {
-		t.root = &node{items: []Item{item}}
+		pageID := t.pager.Allocate()
+		t.root = &node{items: []Item{item}, pageID: pageID}
+		t.writeNode(t.root)
 		return
 	}
 
-	// root is full, split
 	if len(t.root.items) >= t.maxItems() {
 		oldRoot := t.root
-		t.root = &node{children: []*node{oldRoot}}
+		newRootPage := t.pager.Allocate()
+		t.root = &node{children: []uint32{oldRoot.pageID}, pageID: newRootPage}
 		t.splitChild(t.root, 0)
 	}
+
 	t.insertNonFull(t.root, item)
 }
 
@@ -53,35 +89,33 @@ func (t *BTree) insertNonFull(n *node, item Item) {
 	i := len(n.items) - 1
 
 	if len(n.children) == 0 {
-		// leaf — insert item in sorted position
 		n.items = append(n.items, Item{})
 		for i >= 0 && item.Key < n.items[i].Key {
 			n.items[i+1] = n.items[i]
 			i--
 		}
 		n.items[i+1] = item
+		t.writeNode(n)
 		return
 	}
 
-	// internal node
 	for i >= 0 && item.Key < n.items[i].Key {
 		i--
 	}
 	i++
 
-	// if that child is full, split it first
-	if len(n.children[i].items) >= t.maxItems() {
+	child := t.getNode(n.children[i])
+	if len(child.items) >= t.maxItems() {
 		t.splitChild(n, i)
-		// after split, decide which of the two children to descend into
 		if item.Key > n.items[i].Key {
 			i++
 		}
+		child = t.getNode(n.children[i])
 	}
 
-	t.insertNonFull(n.children[i], item)
+	t.insertNonFull(child, item)
 }
 
-// will return Item, bool. Bool will be false if key not found
 func (t *BTree) GetItemByKey(key string) (Item, bool) {
 	n := t.root
 	for n != nil {
@@ -89,74 +123,72 @@ func (t *BTree) GetItemByKey(key string) (Item, bool) {
 		for i < len(n.items) && key > n.items[i].Key {
 			i++
 		}
-		// key found
+
 		if i < len(n.items) && key == n.items[i].Key {
 			return n.items[i], true
 		}
 
-		// leaf node
 		if len(n.children) == 0 {
 			return Item{}, false
 		}
 
-		// check next child
-		n = n.children[i]
+		n = t.getNode(n.children[i])
 	}
 
 	return Item{}, false
 }
 
-// node full needs to be split to avoid walking back upwards, turning one full node into two half full nodes.
 func (t *BTree) splitChild(parent *node, i int) {
-	full := parent.children[i]
+	full := t.getNode(parent.children[i])
 	mid := t.degree - 1
 
-	// new node gets the right half
+	rightPage := t.pager.Allocate()
 	right := &node{
-		items: make([]Item, len(full.items[mid+1:])),
+		items:  make([]Item, len(full.items[mid+1:])),
+		pageID: rightPage,
 	}
 	copy(right.items, full.items[mid+1:])
 
-	// if not a leaf, move right half of children too
 	if len(full.children) > 0 {
-		right.children = make([]*node, len(full.children[mid+1:]))
+		right.children = make([]uint32, len(full.children[mid+1:]))
 		copy(right.children, full.children[mid+1:])
 		full.children = full.children[:mid+1]
 	}
 
-	// middle item goes up to parent
 	midItem := full.items[mid]
 	full.items = full.items[:mid]
 
-	// insert midItem and right child into parent
 	parent.items = append(parent.items, Item{})
 	copy(parent.items[i+1:], parent.items[i:])
 	parent.items[i] = midItem
 
-	parent.children = append(parent.children, nil)
+	parent.children = append(parent.children, 0)
 	copy(parent.children[i+2:], parent.children[i+1:])
-	parent.children[i+1] = right
+	parent.children[i+1] = rightPage
+
+	t.writeNode(full)
+	t.writeNode(right)
+	t.writeNode(parent)
 }
 
-// print tree (maybe delete later???)
-// ty claude <3
 func (t *BTree) Print() string {
 	if t.root == nil {
 		return "(empty tree)"
 	}
 
 	var sb strings.Builder
-	queue := []*node{t.root}
+	queue := []uint32{t.root.pageID}
 	level := 0
 
 	for len(queue) > 0 {
-		next := []*node{}
-		sb.WriteString("Level " + strings.Repeat("", 0) + fmt.Sprintf("%d: ", level))
+		var next []uint32
+		sb.WriteString(fmt.Sprintf("Level %d: ", level))
 
-		for i, n := range queue {
+		for i, pageID := range queue {
 			if i > 0 {
 				sb.WriteString(" ")
 			}
+			n := t.getNode(pageID)
 			keys := make([]string, len(n.items))
 			for j, item := range n.items {
 				keys[j] = item.Key
