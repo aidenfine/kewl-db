@@ -1,7 +1,9 @@
 package exec
 
 import (
+	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/aidenfine/kewl-db/src/btree"
@@ -15,7 +17,7 @@ type CreateStatement struct {
 }
 
 var createHandlers = map[string]func(*CreateStatement) error {
-	"DATABASE": (*CreateStatement).ExecCreateDatabase,
+	"DATABASE": (*CreateStatement).execCreateDatabase,
 }
 
 func NewCreateStatement(stmt string) *CreateStatement{
@@ -31,15 +33,19 @@ func NewCreateStatement(stmt string) *CreateStatement{
 func (c *CreateStatement) Exec() error {
 	switch strings.ToUpper(c.CreatesWhat) {
 		case "DATABASE":
-			return c.ExecCreateDatabase()
+			return c.execCreateDatabase()
 		default:
 			return fmt.Errorf("unknown CREATE target: %s", c.CreatesWhat)
 	}
 }
 
 
-func (c *CreateStatement) ExecCreateDatabase() error {
+func (c *CreateStatement) execCreateDatabase() error {
 	name := c.Args[0]
+	exists := doesDatabaseNameExist(name)
+	if exists {
+		return fmt.Errorf("Database with name %s already exists", name)
+	}
 	_, err := btree.NewBTree(2, name+".db")
 	fmt.Println("Created database")
 	return err
