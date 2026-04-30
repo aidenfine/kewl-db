@@ -6,15 +6,11 @@ import (
 	"log"
 	"net"
 	"strings"
+
+	"github.com/aidenfine/kewl-db/src/exec"
 )
 
 func main() {
-
-	// manual testing
-	b, err := NewBTree(2, "test.db")
-	b.Insert("hello", "123")
-	fmt.Println(b.GetItemByKey("hello"))
-
 	listener, err := net.Listen("tcp", ":4000")
 	if err != nil {
 		log.Fatal(err)
@@ -65,7 +61,12 @@ func execute(input string) string {
 	case strings.HasPrefix(upper, "SELECT"):
 		return fmt.Sprintf("received query: %s (not implemented yet)", input)
 	case strings.HasPrefix(upper, "CREATE"):
-		return fmt.Sprintf("received DDL: %s (not implemented yet)", input)
+		c := exec.NewCreateStatement(input)
+		err := c.Exec()
+		if err != nil {
+			return fmt.Sprintf("%v", err)
+		}
+		return "ok"
 	case strings.HasPrefix(upper, "INSERT"):
 		return fmt.Sprintf("received insert: %s (not implemented yet)", input)
 	default:

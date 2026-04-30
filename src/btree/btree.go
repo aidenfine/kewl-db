@@ -1,4 +1,4 @@
-package main
+package btree
 
 import (
 	"fmt"
@@ -10,14 +10,14 @@ type Item struct {
 	Value string
 }
 
-type node struct {
+type Node struct {
 	items    []Item
 	children []uint32
 	pageID   uint32
 }
 
 type BTree struct {
-	root   *node
+	root   *Node
 	pager  *Pager
 	degree int
 }
@@ -27,14 +27,14 @@ func NewBTree(degree int, filename string) (*BTree, error) {
 		panic("degree must be > 1")
 	}
 
-	pager, err := NewPager(filename)
+	p, err := NewPager(filename)
 	if err != nil {
 		return nil, err
 	}
 
-	t := &BTree{degree: degree, pager: pager}
+	t := &BTree{degree: degree, pager: p}
 
-	if pager.nextPage > 0 {
+	if p.nextPage > 0 {
 		t.root = t.getNode(0)
 	}
 
@@ -49,7 +49,7 @@ func (t *BTree) maxItems() int {
 	return t.degree*2 - 1
 }
 
-func (t *BTree) getNode(pageID uint32) *node {
+func (t *BTree) getNode(pageID uint32) *Node {
 	data, err := t.pager.ReadPage(pageID)
 	if err != nil {
 		panic(err)
@@ -57,7 +57,7 @@ func (t *BTree) getNode(pageID uint32) *node {
 	return deserializeNode(data, pageID)
 }
 
-func (t *BTree) writeNode(n *node) {
+func (t *BTree) writeNode(n *Node) {
 	data := serializeNode(n)
 	err := t.pager.WritePage(n.pageID, data)
 	if err != nil {
@@ -70,7 +70,7 @@ func (t *BTree) Insert(key, value string) {
 
 	if t.root == nil {
 		pageID := t.pager.Allocate()
-		t.root = &node{items: []Item{item}, pageID: pageID}
+		t.root = &Node{items: []Item{item}, pageID: pageID}
 		t.writeNode(t.root)
 		return
 	}
@@ -78,14 +78,14 @@ func (t *BTree) Insert(key, value string) {
 	if len(t.root.items) >= t.maxItems() {
 		oldRoot := t.root
 		newRootPage := t.pager.Allocate()
-		t.root = &node{children: []uint32{oldRoot.pageID}, pageID: newRootPage}
+		t.root = &Node{children: []uint32{oldRoot.pageID}, pageID: newRootPage}
 		t.splitChild(t.root, 0)
 	}
 
 	t.insertNonFull(t.root, item)
 }
 
-func (t *BTree) insertNonFull(n *node, item Item) {
+func (t *BTree) insertNonFull(n *Node, item Item) {
 	i := len(n.items) - 1
 
 	if len(n.children) == 0 {
@@ -138,12 +138,12 @@ func (t *BTree) GetItemByKey(key string) (Item, bool) {
 	return Item{}, false
 }
 
-func (t *BTree) splitChild(parent *node, i int) {
+func (t *BTree) splitChild(parent *Node, i int) {
 	full := t.getNode(parent.children[i])
 	mid := t.degree - 1
 
 	rightPage := t.pager.Allocate()
-	right := &node{
+	right := &Node{
 		items:  make([]Item, len(full.items[mid+1:])),
 		pageID: rightPage,
 	}

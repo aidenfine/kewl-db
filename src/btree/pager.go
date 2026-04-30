@@ -1,4 +1,4 @@
-package main
+package btree
 
 import (
 	"encoding/binary"
@@ -57,7 +57,7 @@ func (p *Pager) Close() error {
 	return p.file.Close()
 }
 
-func serializeNode(n *node) []byte {
+func serializeNode(n *Node) []byte {
 	buf := make([]byte, PageSize)
 	pos := 0
 
@@ -94,8 +94,8 @@ func serializeNode(n *node) []byte {
 	return buf
 }
 
-func deserializeNode(data []byte, pageID uint32) *node {
-	n := &node{pageID: pageID}
+func deserializeNode(data []byte, pageID uint32) *Node {
+	n := &Node{pageID: pageID}
 	pos := 0
 
 	isLeaf := data[pos]

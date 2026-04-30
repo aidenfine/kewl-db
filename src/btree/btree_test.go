@@ -1,16 +1,18 @@
-package main
+package btree_test
 
 import (
 	"fmt"
 	"os"
 	"testing"
+
+	"github.com/aidenfine/kewl-db/src/btree"
 )
 
 func TestInsert(t *testing.T) {
 	os.Remove("test.db")
 	defer os.Remove("test.db")
 
-	tree, err := NewBTree(2, "test.db")
+	tree, err := btree.NewBTree(2, "test.db")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -38,7 +40,7 @@ func TestPersistence(t *testing.T) {
 	os.Remove("persist_test.db")
 	defer os.Remove("persist_test.db")
 
-	tree, err := NewBTree(2, "persist_test.db")
+	tree, err := btree.NewBTree(2, "persist_test.db")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -48,7 +50,7 @@ func TestPersistence(t *testing.T) {
 	tree.Insert("abc", "123")
 	tree.Close()
 
-	tree2, err := NewBTree(2, "persist_test.db")
+	tree2, err := btree.NewBTree(2, "persist_test.db")
 	if err != nil {
 		t.Fatal(err)
 	}
