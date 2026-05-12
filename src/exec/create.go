@@ -1,30 +1,27 @@
 package exec
 
 import (
-	"errors"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/aidenfine/kewl-db/src/btree"
 )
 
-
 type CreateStatement struct {
 	CreatesWhat string
-	Args []string
-	FuncCall func (*CreateStatement) error
+	Args        []string
+	FuncCall    func(*CreateStatement) error
 }
 
-var createHandlers = map[string]func(*CreateStatement) error {
+var createHandlers = map[string]func(*CreateStatement) error{
 	"DATABASE": (*CreateStatement).execCreateDatabase,
 }
 
-func NewCreateStatement(stmt string) *CreateStatement{
+func NewCreateStatement(stmt string) *CreateStatement {
 	stmtSplit := strings.Split(stmt, " ")
 	c := &CreateStatement{
 		CreatesWhat: stmtSplit[1],
-		Args: stmtSplit[2:],
+		Args:        stmtSplit[2:],
 	}
 	c.FuncCall = createHandlers[strings.ToUpper(c.CreatesWhat)]
 	return c
@@ -32,13 +29,12 @@ func NewCreateStatement(stmt string) *CreateStatement{
 
 func (c *CreateStatement) Exec() error {
 	switch strings.ToUpper(c.CreatesWhat) {
-		case "DATABASE":
-			return c.execCreateDatabase()
-		default:
-			return fmt.Errorf("unknown CREATE target: %s", c.CreatesWhat)
+	case "DATABASE":
+		return c.execCreateDatabase()
+	default:
+		return fmt.Errorf("unknown CREATE target: %s", c.CreatesWhat)
 	}
 }
-
 
 func (c *CreateStatement) execCreateDatabase() error {
 	name := c.Args[0]
