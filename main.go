@@ -61,7 +61,7 @@ func execute(input string) string {
 	case strings.HasPrefix(upper, "SELECT"):
 		return fmt.Sprintf("received query: %s (not implemented yet)", input)
 	case strings.HasPrefix(upper, "DROP"):
-		return fmt.Sprintf("drop");
+		return "drop"
 	case strings.HasPrefix(upper, "CREATE"):
 		c := exec.NewCreateStatement(input)
 		err := c.Exec()
