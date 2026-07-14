@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"log"
 	"net"
@@ -9,6 +10,8 @@ import (
 
 	"github.com/aidenfine/kewl-db/src/exec"
 )
+
+var detailed = flag.Bool("detailed", false, "show detailed output after query")
 
 func main() {
 	listener, err := net.Listen("tcp", ":4000")
@@ -70,7 +73,12 @@ func execute(input string) string {
 		}
 		return "ok"
 	case strings.HasPrefix(upper, "INSERT"):
-		return fmt.Sprintf("received insert: %s (not implemented yet)", input)
+		ins, err := exec.NewInsertStatement(input)
+		if err != nil {
+			return err.Error()
+		}
+		_ = ins // TODO: pass to backend for actual insertion
+		return "ok"
 	default:
 		return fmt.Sprintf("unknown command: %s", input)
 	}
