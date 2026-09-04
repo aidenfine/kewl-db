@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/aidenfine/kewl-db/src/btree"
+	"github.com/aidenfine/kewl-db/pkg/btree"
 )
 
 func TestInsert(t *testing.T) {
