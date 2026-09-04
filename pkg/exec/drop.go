@@ -6,27 +6,25 @@ import (
 	"strings"
 )
 
-
 type DropStatement struct {
 	DropsWhat string
-	Args []string
-	FuncCall func (*DropStatement) error
+	Args      []string
+	FuncCall  func(*DropStatement) error
 }
 
-var dropHandlers = map[string]func(*DropStatement) error {
+var dropHandlers = map[string]func(*DropStatement) error{
 	"DATABASE": (*DropStatement).execDropDatabase,
 }
 
-func NewDropStatement(stmt string) *DropStatement{
+func NewDropStatement(stmt string) *DropStatement {
 	stmtSplit := strings.Split(stmt, " ")
 	c := &DropStatement{
 		DropsWhat: stmtSplit[1],
-		Args: stmtSplit[2:],
+		Args:      stmtSplit[2:],
 	}
 	c.FuncCall = dropHandlers[strings.ToUpper(c.DropsWhat)]
 	return c
 }
-
 
 func (c *DropStatement) execDropDatabase() error {
 	name := c.Args[0]

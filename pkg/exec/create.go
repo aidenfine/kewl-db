@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/aidenfine/kewl-db/src/btree"
+	"github.com/aidenfine/kewl-db/pkg/btree"
 )
 
 type CreateStatement struct {

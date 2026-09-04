@@ -8,7 +8,7 @@ import (
 	"net"
 	"strings"
 
-	"github.com/aidenfine/kewl-db/src/exec"
+	"github.com/aidenfine/kewl-db/pkg/exec"
 )
 
 var detailed = flag.Bool("detailed", false, "show detailed output after query")

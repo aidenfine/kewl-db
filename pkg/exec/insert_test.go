@@ -21,11 +21,11 @@ func TestNewInsertStatement(t *testing.T) {
 			values:  []string{"alice", "30"},
 		},
 		{
-			name:   "insert without columns",
-			input:  "INSERT INTO users VALUES (alice, 30)",
-			table:  "users",
+			name:    "insert without columns",
+			input:   "INSERT INTO users VALUES (alice, 30)",
+			table:   "users",
 			columns: nil,
-			values: []string{"alice", "30"},
+			values:  []string{"alice", "30"},
 		},
 		{
 			name:    "single value",
