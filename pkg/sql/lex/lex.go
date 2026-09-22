@@ -1,11 +1,9 @@
 package lex
 
 import (
-	"errors"
 	"strconv"
 	"strings"
 	"unicode"
-	"unicode/utf8"
 )
 
 // SQL examples
@@ -115,19 +113,6 @@ func Lex(sql string) []Token {
 	flush()
 
 	return tokens
-}
-func CheckCharacters(tokens []Token) error {
-	for _, v := range tokens {
-		if !utf8.ValidString(v.Value) {
-			return errors.New("UTF-8 characters are only allowed.")
-		}
-		for _, c := range v.Value {
-			if !(unicode.IsLetter(c) || unicode.IsNumber(c)) && c != '-' && c != '_' {
-				return errors.New("Invalid character")
-			}
-		}
-	}
-	return nil
 }
 
 // id will be default if none is found (this may be bad assumtion?)
