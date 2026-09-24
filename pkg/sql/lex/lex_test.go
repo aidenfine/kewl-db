@@ -113,6 +113,16 @@ func TestLex(t *testing.T) {
 				{Type: lex.ID, Value: "!!!"},
 			},
 		},
+		{
+			name:  "typo in identifer",
+			input: "SELEC * FROM names",
+			expected: []lex.Token{
+				{Type: lex.ID, Value: "SELEC"},
+				{Type: lex.STAR, Value: "*"},
+				{Type: lex.FROM, Value: "FROM"},
+				{Type: lex.ID, Value: "names"},
+			},
+		},
 	}
 
 	for _, tt := range tests {

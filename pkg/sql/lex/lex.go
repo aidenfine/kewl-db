@@ -41,6 +41,14 @@ const (
 	FROM
 	WHERE
 
+	INSERT
+	INTO
+	VALUES
+
+	DELETE
+	UPDATE
+	DROP
+
 	ID
 	INT
 	STRING
@@ -52,6 +60,8 @@ const (
 	COMMA
 	STAR
 )
+
+var ActiveQueryTypes = []tokenType{SELECT, INSERT, DELETE, UPDATE, DROP}
 
 type Token struct {
 	Type  tokenType
@@ -124,6 +134,18 @@ func getTokenType(str string) tokenType {
 		return FROM
 	case "WHERE":
 		return WHERE
+	case "INSERT":
+		return INSERT
+	case "VALUES":
+		return VALUES
+	case "INTO":
+		return INTO
+	case "DELETE":
+		return DELETE
+	case "DROP":
+		return DROP
+	case "UPDATE":
+		return UPDATE
 	default:
 		if _, err := strconv.Atoi(str); err == nil {
 			return INT
