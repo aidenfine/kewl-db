@@ -2,6 +2,7 @@ package parser
 
 import (
 	"errors"
+	"fmt"
 	"slices"
 	"unicode"
 	"unicode/utf8"
@@ -36,20 +37,20 @@ func preCheck(tokens []lex.Token) error {
 	// validate parens, could use leetcode problem valid parentheses stack method for this.
 	// After stripping all parens is the first token valid?
 
+	// this is hard coded and prob not correct we should fix this.
 	tokensLen := len(tokens)
 	if tokensLen < 2 {
 		return ErrSyntaxError
 	}
 
-	firstToken := tokens[0]
-	if firstToken.Value == "(" && tokensLen > 1 {
-		firstToken = tokens[1]
-	}
-	if !slices.Contains(lex.ActiveQueryTypes, firstToken.Type) {
-		return ErrSyntaxError
-
+	// strip parens
+	validParens, strippedTokens, err := stripAndCheckParens(tokens)
+	if !validParens {
+		return err
 	}
 
+	fmt.Println(strippedTokens)
+	return nil
 }
 
 func checkCharacters(tokens []lex.Token) error {
@@ -64,4 +65,42 @@ func checkCharacters(tokens []lex.Token) error {
 		}
 	}
 	return nil
+}
+
+func stripAndCheckParens(tokens []lex.Token) (bool, []lex.Token, error) {
+	validParens := []string{"(", ")", "[", "]"}
+
+	parensMap := map[string]string{
+		")": "(",
+		"]": "[",
+	}
+
+	stack := []string{}
+	strippedParensTokens := []lex.Token{}
+
+	for _, v := range tokens {
+		if slices.Contains(validParens, v.Value) {
+			if opening, ok := parensMap[v.Value]; ok {
+				if len(stack) == 0 {
+					return false, tokens, ErrSyntaxError
+				}
+
+				if opening != stack[len(stack)-1] {
+					return false, tokens, ErrSyntaxError
+				}
+
+				stack = stack[:len(stack)-1]
+			} else {
+				stack = append(stack, v.Value)
+			}
+		} else {
+			strippedParensTokens = append(strippedParensTokens, v)
+		}
+	}
+
+	if len(stack) != 0 {
+		return false, tokens, ErrSyntaxError
+	}
+
+	return true, strippedParensTokens, nil
 }
