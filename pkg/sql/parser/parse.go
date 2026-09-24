@@ -8,6 +8,11 @@ import (
 	"github.com/aidenfine/kewl-db/pkg/sql/lex"
 )
 
+var (
+	ErrInvalidUTF8 = errors.New("UTF-8 characters are only allowed.")
+	ErrInvalidChar = errors.New("Invalid character")
+)
+
 // TODO: finish this
 func Parse(tokens []lex.Token) error {
 	// initial token checks
@@ -22,11 +27,11 @@ func Parse(tokens []lex.Token) error {
 func checkCharacters(tokens []lex.Token) error {
 	for _, v := range tokens {
 		if !utf8.ValidString(v.Value) {
-			return errors.New("UTF-8 characters are only allowed.")
+			return ErrInvalidUTF8
 		}
 		for _, c := range v.Value {
 			if !(unicode.IsLetter(c) || unicode.IsNumber(c)) && c != '-' && c != '_' {
-				return errors.New("Invalid character")
+				return ErrInvalidChar
 			}
 		}
 	}
