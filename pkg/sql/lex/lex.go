@@ -1,9 +1,9 @@
 package lex
 
 import (
-	"strconv"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 )
 
 // SQL examples
@@ -11,7 +11,7 @@ import (
 // After lex
 // [SELECT, ID(id), COMMA, ID(name), FROM, ID(users), WHERE, ID(age), GT(>), INT(18)]
 
-type tokenType int
+type TokenType int
 
 // Defines the token types for the lex. With a defined token struct we could simply
 // use the TokenType like this.
@@ -37,7 +37,7 @@ type tokenType int
 //		Value: "accounts",
 //	}
 const (
-	SELECT tokenType = iota
+	SELECT TokenType = iota
 	FROM
 	WHERE
 
@@ -59,12 +59,19 @@ const (
 
 	COMMA
 	STAR
+	CREATE
+	DATABASE
+	SET
+	LPAREN
+	RPAREN
+	SEMICOLON
+	INVALID
 )
 
-var ActiveQueryTypes = []tokenType{SELECT, INSERT, DELETE, UPDATE, DROP}
+var ActiveQueryTypes = []TokenType{SELECT, INSERT, DELETE, UPDATE, DROP, CREATE}
 
 type Token struct {
-	Type  tokenType
+	Type  TokenType
 	Value string
 }
 
@@ -82,6 +89,9 @@ type Token struct {
 // Just assume !!! is valid.
 // TOOD: make this more strict
 func Lex(sql string) []Token {
+	if !utf8.ValidString(sql) {
+		return []Token{{Type: INVALID, Value: sql}}
+	}
 	currStr := ""
 	tokens := []Token{}
 
@@ -94,12 +104,44 @@ func Lex(sql string) []Token {
 
 		currStr = ""
 	}
-	for _, c := range sql {
+	runes := []rune(sql)
+	for i := 0; i < len(runes); i++ {
+		c := runes[i]
 		if unicode.IsSpace(c) {
 			flush()
 			continue
 		}
 		switch c {
+		case '\'':
+			flush()
+			var value strings.Builder
+			closed := false
+			for i++; i < len(runes); i++ {
+				if runes[i] == '\'' {
+					if i+1 < len(runes) && runes[i+1] == '\'' {
+						value.WriteRune('\'')
+						i++
+						continue
+					}
+					closed = true
+					break
+				}
+				value.WriteRune(runes[i])
+			}
+			kind := STRING
+			if !closed {
+				kind = INVALID
+			}
+			tokens = append(tokens, Token{Type: kind, Value: value.String()})
+		case '(':
+			flush()
+			tokens = append(tokens, Token{Type: LPAREN, Value: "("})
+		case ')':
+			flush()
+			tokens = append(tokens, Token{Type: RPAREN, Value: ")"})
+		case ';':
+			flush()
+			tokens = append(tokens, Token{Type: SEMICOLON, Value: ";"})
 		case '=':
 			flush()
 			tokens = append(tokens, Token{Type: EQ, Value: string(c)})
@@ -126,7 +168,7 @@ func Lex(sql string) []Token {
 }
 
 // id will be default if none is found (this may be bad assumtion?)
-func getTokenType(str string) tokenType {
+func getTokenType(str string) TokenType {
 	switch strings.ToUpper(str) {
 	case "SELECT":
 		return SELECT
@@ -146,11 +188,34 @@ func getTokenType(str string) tokenType {
 		return DROP
 	case "UPDATE":
 		return UPDATE
+	case "CREATE":
+		return CREATE
+	case "DATABASE":
+		return DATABASE
+	case "SET":
+		return SET
 	default:
-		if _, err := strconv.Atoi(str); err == nil {
+		if isInteger(str) {
 			return INT
 		}
 		return ID
 	}
 
+}
+
+// Classify integers by spelling so overflow is reported by the parser,
+// rather than accidentally treating a large numeric literal as an identifier.
+func isInteger(s string) bool {
+	if len(s) > 0 && (s[0] == '-' || s[0] == '+') {
+		s = s[1:]
+	}
+	if s == "" {
+		return false
+	}
+	for _, c := range s {
+		if c < '0' || c > '9' {
+			return false
+		}
+	}
+	return true
 }
