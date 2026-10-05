@@ -1,85 +1,9 @@
 package main
 
 import (
-	"bufio"
-	"flag"
-	"fmt"
-	"log"
-	"net"
-	"strings"
-
-	"github.com/aidenfine/kewl-db/pkg/exec"
+	"github.com/aidenfine/kewl-db/cmd"
 )
 
-var detailed = flag.Bool("detailed", false, "show detailed output after query")
-
 func main() {
-	listener, err := net.Listen("tcp", ":4000")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer listener.Close()
-
-	log.Println("kewl-db listening on :4000")
-
-	for {
-		conn, err := listener.Accept()
-		if err != nil {
-			log.Println("accept error:", err)
-			continue
-		}
-		go handleConn(conn)
-	}
-}
-
-func handleConn(conn net.Conn) {
-	defer conn.Close()
-	log.Printf("client connected: %s", conn.RemoteAddr())
-
-	scanner := bufio.NewScanner(conn)
-	conn.Write([]byte("welcome to kewl-db\n> "))
-
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if line == "" {
-			conn.Write([]byte("> "))
-			continue
-		}
-
-		response := execute(line)
-		conn.Write([]byte(response + "\n> "))
-	}
-
-	log.Printf("client disconnected: %s", conn.RemoteAddr())
-}
-
-func execute(input string) string {
-	upper := strings.ToUpper(input)
-
-	switch {
-	case upper == "PING":
-		return "PONG"
-	case upper == "QUIT":
-		return "bye"
-	case strings.HasPrefix(upper, "SELECT"):
-		return fmt.Sprintf("received query: %s (not implemented yet)", input)
-	case strings.HasPrefix(upper, "DROP"):
-		return "drop"
-	case strings.HasPrefix(upper, "CREATE"):
-		c := exec.NewCreateStatement(input)
-		err := c.Exec()
-		if err != nil {
-			return err.Error()
-		}
-		return "ok"
-	case strings.HasPrefix(upper, "INSERT"):
-		ins, err := exec.NewInsertStatement(input)
-		if err != nil {
-			return err.Error()
-		}
-		_ = ins // TODO: pass to backend for actual insertion
-		return "ok"
-	default:
-		return fmt.Sprintf("unknown command: %s", input)
-	}
+	cmd.Execute()
 }
